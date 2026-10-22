@@ -16,6 +16,9 @@
                         <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                             {{ __('Dashboard') }}
                         </flux:sidebar.item>
+                        <flux:sidebar.item icon="rectangle-stack" :href="route('exhibitions.index')" :current="request()->routeIs('exhibitions.*')" wire:navigate>
+                            展示
+                        </flux:sidebar.item>
                     @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
