@@ -51,6 +51,9 @@ new #[Title('作品')] class extends Component {
             <flux:button icon="pencil-square" :href="route('exhibitions.edit', $exhibition)" wire:navigate>
                 展示を編集
             </flux:button>
+            <flux:button icon="qr-code" :href="route('exhibitions.qr', $exhibition)" wire:navigate>
+                QR を印刷
+            </flux:button>
             <flux:button variant="primary" icon="plus" :href="route('artworks.create', $exhibition)" wire:navigate>
                 作品を追加
             </flux:button>
@@ -81,6 +84,9 @@ new #[Title('作品')] class extends Component {
                             <flux:badge size="sm" :color="$artwork->status->badgeColor()">{{ $artwork->status->label() }}</flux:badge>
                         </flux:table.cell>
                         <flux:table.cell align="end">
+                            <flux:button size="sm" variant="ghost" icon="qr-code" :href="route('artworks.qr', $artwork)" wire:navigate>
+                                QR
+                            </flux:button>
                             <flux:button size="sm" icon="pencil-square" :href="route('artworks.edit', $artwork)" wire:navigate>
                                 編集
                             </flux:button>

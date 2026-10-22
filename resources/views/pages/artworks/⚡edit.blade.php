@@ -115,9 +115,12 @@ new #[Title('作品の編集')] class extends Component {
             </div>
         </div>
 
-        <flux:button wire:click="togglePublish" :icon="$artwork->isPublished() ? 'eye-slash' : 'eye'">
-            {{ $artwork->isPublished() ? '非公開にする' : '公開する' }}
-        </flux:button>
+        <div class="flex gap-2">
+            <flux:button icon="qr-code" :href="route('artworks.qr', $artwork)" wire:navigate>QR コード</flux:button>
+            <flux:button wire:click="togglePublish" :icon="$artwork->isPublished() ? 'eye-slash' : 'eye'">
+                {{ $artwork->isPublished() ? '非公開にする' : '公開する' }}
+            </flux:button>
+        </div>
     </div>
 
     <form wire:submit="save" class="space-y-6">

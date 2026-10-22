@@ -119,6 +119,14 @@ class Artwork extends Model
     }
 
     /**
+     * Get the absolute URL of the artwork's visitor page, built from APP_URL for the printed QR code.
+     */
+    public function publicUrl(): string
+    {
+        return rtrim(config('app.url'), '/').route('visitor.artwork', $this, absolute: false);
+    }
+
+    /**
      * Determine whether the artwork is published.
      */
     public function isPublished(): bool
