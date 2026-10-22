@@ -127,6 +127,17 @@ class Artwork extends Model
     }
 
     /**
+     * Determine whether visitors can see the artwork: the museum is active,
+     * the exhibition is published and within its period, and the artwork is published.
+     */
+    public function isVisibleToVisitors(): bool
+    {
+        return $this->isPublished()
+            && $this->exhibition->museum->is_active
+            && Exhibition::visible()->whereKey($this->exhibition_id)->exists();
+    }
+
+    /**
      * Scope the query to published artworks.
      *
      * @param  Builder<self>  $query

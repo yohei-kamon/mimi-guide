@@ -2,7 +2,6 @@
 
 use App\Models\Artwork;
 use App\Models\ArtworkTranslation;
-use App\Models\Exhibition;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
@@ -19,14 +18,9 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function mount(Artwork $artwork): void
     {
-        $artwork->load('translations', 'exhibition.translations', 'exhibition.museum.translations');
+        $artwork->load('translations', 'audioGuides', 'exhibition.translations', 'exhibition.museum.translations');
 
-        abort_unless(
-            $artwork->isPublished()
-                && $artwork->exhibition->museum->is_active
-                && Exhibition::visible()->whereKey($artwork->exhibition_id)->exists(),
-            404,
-        );
+        abort_unless($artwork->isVisibleToVisitors(), 404);
 
         $this->artwork = $artwork;
     }
@@ -71,6 +65,10 @@ new #[Layout('layouts::visitor')] class extends Component {
     @if ($museum->isFree())
         @if (filled($this->translation?->description))
             <flux:text class="whitespace-pre-line">{{ $this->translation->description }}</flux:text>
+        @endif
+
+        @if ($artwork->audioGuide() !== null)
+            <audio controls preload="none" src="{{ route('visitor.artwork.audio', $artwork) }}" class="w-full"></audio>
         @endif
     @else
         <flux:callout icon="lock-closed">

@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\Artwork;
+use App\Models\AudioGuide;
 use App\Models\Exhibition;
 use App\Models\Museum;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 /**
@@ -120,4 +122,75 @@ test('a guide number of another exhibition, a draft artwork or no artwork shows 
     'draft artwork' => 2,
     'another exhibition' => 3,
     'no artwork' => 99,
+]);
+
+/**
+ * Add an audio guide with a stored file to the artwork.
+ */
+function storedAudioGuide(Artwork $artwork, string $locale = 'ja', string $contents = 'audio'): AudioGuide
+{
+    $audioGuide = AudioGuide::factory()->for($artwork)->locale($locale)->create();
+    Storage::disk(AudioGuide::DISK)->put($audioGuide->path, $contents);
+
+    return $audioGuide;
+}
+
+test('the artwork page of a free museum shows the audio player', function () {
+    Storage::fake(AudioGuide::DISK);
+    $artwork = visibleArtwork();
+    storedAudioGuide($artwork);
+
+    $this->get(route('visitor.artwork', $artwork))
+        ->assertOk()
+        ->assertSee(route('visitor.artwork.audio', $artwork), false);
+});
+
+test('guests can stream the audio of a free museum, falling back to the default locale', function () {
+    Storage::fake(AudioGuide::DISK);
+    $artwork = visibleArtwork(Museum::factory()->create(['locales' => ['ja', 'en'], 'default_locale' => 'ja']));
+    storedAudioGuide($artwork, 'ja', 'japanese audio');
+
+    $response = $this->get(route('visitor.artwork.audio', $artwork))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'audio/mpeg')
+        ->assertHeader('Accept-Ranges', 'bytes');
+
+    expect($response->baseResponse->getFile()->getContent())->toBe('japanese audio');
+});
+
+test('the audio supports range requests for seeking', function () {
+    Storage::fake(AudioGuide::DISK);
+    $artwork = visibleArtwork();
+    storedAudioGuide($artwork, contents: '0123456789');
+
+    $this->get(route('visitor.artwork.audio', $artwork), ['Range' => 'bytes=2-5'])
+        ->assertStatus(206)
+        ->assertHeader('Content-Range', 'bytes 2-5/10');
+});
+
+test('the audio of a paid museum is forbidden without a pass', function () {
+    Storage::fake(AudioGuide::DISK);
+    $artwork = visibleArtwork(Museum::factory()->paid(800)->create());
+    storedAudioGuide($artwork);
+
+    $this->get(route('visitor.artwork', $artwork))
+        ->assertDontSee(route('visitor.artwork.audio', $artwork), false);
+
+    $this->get(route('visitor.artwork.audio', $artwork))->assertForbidden();
+});
+
+test('the audio is not found when the artwork has no audio', function () {
+    $this->get(route('visitor.artwork.audio', visibleArtwork()))->assertNotFound();
+});
+
+test('the audio is not found when the artwork, exhibition or museum is hidden', function (Artwork $artwork) {
+    Storage::fake(AudioGuide::DISK);
+    storedAudioGuide($artwork);
+
+    $this->get(route('visitor.artwork.audio', $artwork))->assertNotFound();
+})->with([
+    'draft artwork' => fn () => Artwork::factory()->for(Exhibition::factory()->published())->create(),
+    'unpublished exhibition' => fn () => Artwork::factory()->for(Exhibition::factory()->unpublished())->published()->create(),
+    'ended exhibition' => fn () => Artwork::factory()->for(Exhibition::factory()->published()->ended())->published()->create(),
+    'stopped museum' => fn () => visibleArtwork(Museum::factory()->inactive()->create()),
 ]);
