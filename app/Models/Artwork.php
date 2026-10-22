@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -74,6 +75,39 @@ class Artwork extends Model
 
         return $this->translations->firstWhere('locale', $locale ?? $defaultLocale)
             ?? $this->translations->firstWhere('locale', $defaultLocale);
+    }
+
+    /**
+     * Get the artwork's audio guides in each locale.
+     *
+     * @return HasMany<AudioGuide, $this>
+     */
+    public function audioGuides(): HasMany
+    {
+        return $this->hasMany(AudioGuide::class);
+    }
+
+    /**
+     * Get the audio guide for the given locale, falling back to the museum's default locale.
+     */
+    public function audioGuide(?string $locale = null): ?AudioGuide
+    {
+        $defaultLocale = $this->exhibition->museum->default_locale;
+
+        return $this->audioGuides->firstWhere('locale', $locale ?? $defaultLocale)
+            ?? $this->audioGuides->firstWhere('locale', $defaultLocale);
+    }
+
+    /**
+     * Delete the artwork after deleting its audio files; the records are removed by the cascade.
+     */
+    public function deleteWithFiles(): void
+    {
+        foreach ($this->audioGuides()->pluck('path') as $path) {
+            Storage::disk(AudioGuide::DISK)->delete($path);
+        }
+
+        $this->delete();
     }
 
     /**

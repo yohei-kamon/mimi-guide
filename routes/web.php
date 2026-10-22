@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AudioGuideController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -18,6 +19,8 @@ Route::middleware(['auth', 'verified', 'role:staff'])->group(function () {
     Route::livewire('exhibitions/{exhibition}/artworks', 'pages::artworks.index')->name('artworks.index');
     Route::livewire('exhibitions/{exhibition}/artworks/create', 'pages::artworks.create')->name('artworks.create');
     Route::livewire('artworks/{artwork}/edit', 'pages::artworks.edit')->name('artworks.edit');
+
+    Route::get('audio-guides/{audioGuide}', [AudioGuideController::class, 'preview'])->name('audio-guides.preview');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
