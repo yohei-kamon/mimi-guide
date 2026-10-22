@@ -62,6 +62,16 @@ class Museum extends Model
     }
 
     /**
+     * Get the museum's exhibitions.
+     *
+     * @return HasMany<Exhibition, $this>
+     */
+    public function exhibitions(): HasMany
+    {
+        return $this->hasMany(Exhibition::class);
+    }
+
+    /**
      * Get the translation for the given locale, falling back to the museum's default locale.
      */
     public function translation(?string $locale = null): ?MuseumTranslation

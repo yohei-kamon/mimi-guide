@@ -2,16 +2,15 @@
 
 namespace Database\Seeders;
 
+use App\Models\Exhibition;
+use App\Models\ExhibitionTranslation;
 use App\Models\Museum;
 use App\Models\MuseumTranslation;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
@@ -25,6 +24,20 @@ class DatabaseSeeder extends Seeder
                 'locales' => ['ja', 'en'],
                 'default_locale' => 'ja',
             ]);
+
+        $exhibitions = [
+            [Exhibition::factory()->published(), '常設展 日本の名品', 'Permanent Collection'],
+            [Exhibition::factory()->published()->state(['starts_on' => today()->subMonth(), 'ends_on' => today()->addMonths(2)]), '企画展 浮世絵の世界', 'The World of Ukiyo-e'],
+            [Exhibition::factory(), '準備中 近代の版画', 'Modern Prints (draft)'],
+            [Exhibition::factory()->published()->ended(), '企画展 茶の湯の美', 'The Art of Tea'],
+        ];
+
+        foreach ($exhibitions as [$factory, $jaName, $enName]) {
+            $factory->for($museum)
+                ->has(ExhibitionTranslation::factory()->locale('ja')->state(['name' => $jaName]), 'translations')
+                ->has(ExhibitionTranslation::factory()->locale('en')->state(['name' => $enName]), 'translations')
+                ->create();
+        }
 
         User::factory()->for($museum)->create([
             'name' => 'Test User',
