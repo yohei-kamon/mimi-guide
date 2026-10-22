@@ -60,6 +60,13 @@ new #[Title('展示の編集')] class extends Component {
     {
         $this->authorize('delete', $this->exhibition);
 
+        if ($this->exhibition->artworks()->exists()) {
+            Flux::modal('confirm-exhibition-deletion')->close();
+            Flux::toast(variant: 'danger', text: '作品が残っている展示は削除できません。先に作品を削除してください。');
+
+            return;
+        }
+
         $this->exhibition->delete();
 
         Flux::toast(variant: 'success', text: '展示を削除しました。');
@@ -93,7 +100,7 @@ new #[Title('展示の編集')] class extends Component {
 
     <div class="space-y-3">
         <flux:heading>展示の削除</flux:heading>
-        <flux:text>削除すると元に戻せません。</flux:text>
+        <flux:text>削除すると元に戻せません。作品が残っている展示は削除できません。</flux:text>
 
         <flux:modal.trigger name="confirm-exhibition-deletion">
             <flux:button variant="danger">削除する</flux:button>

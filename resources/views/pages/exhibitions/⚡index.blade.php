@@ -60,9 +60,14 @@ new #[Title('展示')] class extends Component {
                             <flux:badge size="sm" :color="$exhibition->status->badgeColor()">{{ $exhibition->status->label() }}</flux:badge>
                         </flux:table.cell>
                         <flux:table.cell align="end">
-                            <flux:button size="sm" icon="pencil-square" :href="route('exhibitions.edit', $exhibition)" wire:navigate>
-                                編集
-                            </flux:button>
+                            <div class="flex justify-end gap-2">
+                                <flux:button size="sm" icon="photo" :href="route('artworks.index', $exhibition)" wire:navigate>
+                                    作品
+                                </flux:button>
+                                <flux:button size="sm" icon="pencil-square" :href="route('exhibitions.edit', $exhibition)" wire:navigate>
+                                    編集
+                                </flux:button>
+                            </div>
                         </flux:table.cell>
                     </flux:table.row>
                 @endforeach
