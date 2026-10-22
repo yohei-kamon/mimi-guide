@@ -93,6 +93,17 @@ class Artwork extends Model
     }
 
     /**
+     * Scope the query to published artworks.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function published(Builder $query): void
+    {
+        $query->where('status', PublishStatus::Published);
+    }
+
+    /**
      * Scope the query to the playback order: sort order, then guide number.
      *
      * @param  Builder<self>  $query

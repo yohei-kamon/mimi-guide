@@ -4,6 +4,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
+Route::livewire('m/{museum:slug}', 'pages::visitor.museum')->name('visitor.museum');
+Route::livewire('e/{exhibition:slug}', 'pages::visitor.exhibition')->name('visitor.exhibition');
+Route::livewire('a/{artwork:slug}', 'pages::visitor.artwork')->name('visitor.artwork');
+
 Route::middleware(['auth', 'verified', 'role:staff'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
