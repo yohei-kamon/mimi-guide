@@ -30,4 +30,14 @@ class MuseumPolicy
     {
         return $user->isAdmin();
     }
+
+    /**
+     * Determine whether the user can set the museum's audio guide price.
+     */
+    public function updatePrice(User $user, Museum $museum): bool
+    {
+        return $user->isStaff()
+            && $user->museum_id !== null
+            && $user->museum_id === $museum->id;
+    }
 }

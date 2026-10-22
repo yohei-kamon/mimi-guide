@@ -24,6 +24,8 @@ Route::middleware(['auth', 'verified', 'role:staff'])->group(function () {
     Route::livewire('artworks/{artwork}/edit', 'pages::artworks.edit')->name('artworks.edit');
     Route::livewire('artworks/{artwork}/qr', 'pages::artworks.qr')->name('artworks.qr');
 
+    Route::livewire('museum/settings', 'pages::museum.settings')->name('museum.settings');
+
     Route::get('audio-guides/{audioGuide}', [AudioGuideController::class, 'preview'])->name('audio-guides.preview');
 });
 

@@ -19,6 +19,9 @@
                         <flux:sidebar.item icon="rectangle-stack" :href="route('exhibitions.index')" :current="request()->routeIs('exhibitions.*')" wire:navigate>
                             展示
                         </flux:sidebar.item>
+                        <flux:sidebar.item icon="cog-6-tooth" :href="route('museum.settings')" :current="request()->routeIs('museum.settings')" wire:navigate>
+                            館の設定
+                        </flux:sidebar.item>
                     @endif
                     @if (auth()->user()->isAdmin())
                         <flux:sidebar.item icon="building-library" :href="route('admin.museums.index')" :current="request()->routeIs('admin.museums.*')" wire:navigate>
