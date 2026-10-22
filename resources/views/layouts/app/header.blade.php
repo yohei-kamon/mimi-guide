@@ -18,6 +18,11 @@
                         展示
                     </flux:navbar.item>
                 @endif
+                @if (auth()->user()->isAdmin())
+                    <flux:navbar.item icon="building-library" :href="route('admin.museums.index')" :current="request()->routeIs('admin.museums.*')" wire:navigate>
+                        館
+                    </flux:navbar.item>
+                @endif
             </flux:navbar>
 
             <flux:spacer />
@@ -64,6 +69,11 @@
                         </flux:sidebar.item>
                         <flux:sidebar.item icon="rectangle-stack" :href="route('exhibitions.index')" :current="request()->routeIs('exhibitions.*')" wire:navigate>
                             展示
+                        </flux:sidebar.item>
+                    @endif
+                    @if (auth()->user()->isAdmin())
+                        <flux:sidebar.item icon="building-library" :href="route('admin.museums.index')" :current="request()->routeIs('admin.museums.*')" wire:navigate>
+                            館
                         </flux:sidebar.item>
                     @endif
                 </flux:sidebar.group>

@@ -24,7 +24,7 @@ enum UserRole: string
     public function homePath(): string
     {
         return match ($this) {
-            self::Admin => '/admin/museums',
+            self::Admin => route('admin.museums.index', absolute: false),
             self::Staff => route('dashboard', absolute: false),
         };
     }

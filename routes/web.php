@@ -16,4 +16,10 @@ Route::middleware(['auth', 'verified', 'role:staff'])->group(function () {
     Route::livewire('artworks/{artwork}/edit', 'pages::artworks.edit')->name('artworks.edit');
 });
 
+Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::livewire('museums', 'pages::admin.museums.index')->name('museums.index');
+    Route::livewire('museums/create', 'pages::admin.museums.create')->name('museums.create');
+    Route::livewire('museums/{museum}/edit', 'pages::admin.museums.edit')->name('museums.edit');
+});
+
 require __DIR__.'/settings.php';

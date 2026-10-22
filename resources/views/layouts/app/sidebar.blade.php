@@ -20,6 +20,11 @@
                             展示
                         </flux:sidebar.item>
                     @endif
+                    @if (auth()->user()->isAdmin())
+                        <flux:sidebar.item icon="building-library" :href="route('admin.museums.index')" :current="request()->routeIs('admin.museums.*')" wire:navigate>
+                            館
+                        </flux:sidebar.item>
+                    @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
