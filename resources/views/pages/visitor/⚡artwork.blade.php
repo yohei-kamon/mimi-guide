@@ -69,6 +69,10 @@ new #[Layout('layouts::visitor')] class extends Component {
 
         @if ($artwork->audioGuide() !== null)
             <audio controls preload="none" src="{{ route('visitor.artwork.audio', $artwork) }}" class="w-full"></audio>
+
+            <flux:button icon="play" :href="route('visitor.exhibition.play', [$artwork->exhibition, 'from' => $artwork->slug])" class="w-full">
+                ここから続けて再生
+            </flux:button>
         @endif
     @else
         <flux:callout icon="lock-closed">

@@ -92,6 +92,12 @@ new #[Layout('layouts::visitor')] class extends Component {
         @endif
     </div>
 
+    @if ($this->artworks->isNotEmpty())
+        <flux:button variant="primary" icon="play" :href="route('visitor.exhibition.play', $exhibition)" class="w-full">
+            最初から続けて再生
+        </flux:button>
+    @endif
+
     <form wire:submit="openByGuideNumber" class="flex items-end gap-2">
         <div class="flex-1">
             <flux:input wire:model="guideNumber" label="ガイド番号" type="number" inputmode="numeric" min="1" />
