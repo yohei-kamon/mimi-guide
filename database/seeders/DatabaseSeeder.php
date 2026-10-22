@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Museum;
+use App\Models\MuseumTranslation;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,11 +17,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $museum = Museum::factory()
+            ->has(MuseumTranslation::factory()->state(['locale' => 'ja', 'name' => 'ミミ美術館']), 'translations')
+            ->has(MuseumTranslation::factory()->state(['locale' => 'en', 'name' => 'Mimi Museum of Art']), 'translations')
+            ->create([
+                'slug' => 'mimi',
+                'locales' => ['ja', 'en'],
+                'default_locale' => 'ja',
+            ]);
 
-        User::factory()->create([
+        User::factory()->for($museum)->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+        ]);
+
+        User::factory()->admin()->create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
         ]);
     }
 }
