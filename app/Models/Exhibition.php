@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasRandomSlug;
 use App\Enums\PublishStatus;
 use Database\Factories\ExhibitionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -28,29 +28,7 @@ use Illuminate\Support\Str;
 class Exhibition extends Model
 {
     /** @use HasFactory<ExhibitionFactory> */
-    use HasFactory;
-
-    /**
-     * Generate the permanent public slug when the exhibition is created.
-     */
-    protected static function booted(): void
-    {
-        static::creating(function (Exhibition $exhibition) {
-            $exhibition->slug ??= static::generateSlug();
-        });
-    }
-
-    /**
-     * Generate a random slug of 12 lowercase letters and digits that is not used yet.
-     */
-    public static function generateSlug(): string
-    {
-        do {
-            $slug = Str::lower(Str::random(12));
-        } while (static::where('slug', $slug)->exists());
-
-        return $slug;
-    }
+    use HasFactory, HasRandomSlug;
 
     /**
      * Get the attributes that should be cast.
@@ -74,6 +52,16 @@ class Exhibition extends Model
     public function museum(): BelongsTo
     {
         return $this->belongsTo(Museum::class);
+    }
+
+    /**
+     * Get the artworks shown in the exhibition.
+     *
+     * @return HasMany<Artwork, $this>
+     */
+    public function artworks(): HasMany
+    {
+        return $this->hasMany(Artwork::class);
     }
 
     /**

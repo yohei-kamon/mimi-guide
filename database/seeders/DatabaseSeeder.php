@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Artwork;
+use App\Models\ArtworkTranslation;
 use App\Models\Exhibition;
 use App\Models\ExhibitionTranslation;
 use App\Models\Museum;
@@ -33,10 +35,12 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($exhibitions as [$factory, $jaName, $enName]) {
-            $factory->for($museum)
+            $exhibition = $factory->for($museum)
                 ->has(ExhibitionTranslation::factory()->locale('ja')->state(['name' => $jaName]), 'translations')
                 ->has(ExhibitionTranslation::factory()->locale('en')->state(['name' => $enName]), 'translations')
                 ->create();
+
+            $this->seedArtworks($exhibition);
         }
 
         User::factory()->for($museum)->create([
@@ -48,5 +52,20 @@ class DatabaseSeeder extends Seeder
             'name' => 'Admin User',
             'email' => 'admin@example.com',
         ]);
+    }
+
+    /**
+     * Seed four artworks numbered from 1 in the exhibition; the last one is a draft.
+     */
+    private function seedArtworks(Exhibition $exhibition): void
+    {
+        foreach (range(1, 4) as $number) {
+            $factory = $number === 4 ? Artwork::factory() : Artwork::factory()->published();
+
+            $factory->for($exhibition)
+                ->has(ArtworkTranslation::factory()->locale('ja'), 'translations')
+                ->has(ArtworkTranslation::factory()->locale('en')->state(['artist' => null, 'production_year' => null]), 'translations')
+                ->create(['guide_number' => $number, 'sort_order' => $number]);
+        }
     }
 }
