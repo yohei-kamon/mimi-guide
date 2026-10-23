@@ -39,6 +39,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::livewire('museums', 'pages::admin.museums.index')->name('museums.index');
     Route::livewire('museums/create', 'pages::admin.museums.create')->name('museums.create');
     Route::livewire('museums/{museum}/edit', 'pages::admin.museums.edit')->name('museums.edit');
+    Route::livewire('museums/{museum}/staff', 'pages::admin.staff.index')->name('staff.index');
+    Route::livewire('museums/{museum}/staff/create', 'pages::admin.staff.create')->name('staff.create');
 });
 
 require __DIR__.'/settings.php';

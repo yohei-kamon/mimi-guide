@@ -79,7 +79,9 @@ new #[Title('館')] class extends Component {
                             <flux:badge size="sm" :color="$museum->is_active ? 'green' : 'zinc'">{{ $museum->is_active ? '稼働中' : '停止中' }}</flux:badge>
                         </flux:table.cell>
                         <flux:table.cell>{{ $museum->isFree() ? '無料' : number_format($museum->guide_price).'円' }}</flux:table.cell>
-                        <flux:table.cell>{{ $museum->users_count }}人</flux:table.cell>
+                        <flux:table.cell>
+                            <flux:link :href="route('admin.staff.index', $museum)" wire:navigate>{{ $museum->users_count }}人</flux:link>
+                        </flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" :icon="$museum->is_active ? 'pause' : 'play'" wire:click="toggleActive({{ $museum->id }})">
