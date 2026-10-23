@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Symfony\Component\HttpFoundation\Cookie;
 
 /**
  * @property int $id
@@ -94,6 +96,64 @@ class Museum extends Model
     public function isFree(): bool
     {
         return $this->guide_price === 0;
+    }
+
+    /**
+     * Get the guide passes sold for the museum.
+     *
+     * @return HasMany<GuidePass, $this>
+     */
+    public function guidePasses(): HasMany
+    {
+        return $this->hasMany(GuidePass::class);
+    }
+
+    /**
+     * Get the name of the cookie that holds the visitor's pass token for this museum.
+     *
+     * @return non-empty-string
+     */
+    public function passCookieName(): string
+    {
+        return "guide_pass_{$this->id}";
+    }
+
+    /**
+     * Get the pass token for this museum from the visitor's cookie.
+     */
+    public function passTokenFrom(Request $request): ?string
+    {
+        $token = $request->cookie($this->passCookieName());
+
+        return is_string($token) ? $token : null;
+    }
+
+    /**
+     * Make the cookie that keeps the pass in the visitor's browser, outliving the pass itself.
+     */
+    public function passCookie(GuidePass $guidePass): Cookie
+    {
+        return cookie($this->passCookieName(), $guidePass->token, 60 * GuidePass::LIFETIME_HOURS * 2);
+    }
+
+    /**
+     * Get the museum's paid, unexpired pass with the given token.
+     */
+    public function validPass(?string $token): ?GuidePass
+    {
+        if (blank($token)) {
+            return null;
+        }
+
+        return $this->guidePasses()->valid()->where('token', $token)->first();
+    }
+
+    /**
+     * Determine whether a visitor holding the given pass token can read the descriptions and hear the audio.
+     */
+    public function grantsAccessWith(?string $token): bool
+    {
+        return $this->isFree() || $this->validPass($token) !== null;
     }
 
     /**

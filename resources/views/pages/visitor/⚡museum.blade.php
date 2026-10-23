@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Exhibition;
+use App\Models\GuidePass;
 use App\Models\Museum;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -40,6 +41,15 @@ new #[Layout('layouts::visitor')] class extends Component {
     }
 
     /**
+     * Get the visitor's valid pass for the museum, if any.
+     */
+    #[Computed]
+    public function validPass(): ?GuidePass
+    {
+        return $this->museum->validPass($this->museum->passTokenFrom(request()));
+    }
+
+    /**
      * Render the component.
      */
     public function render(): View
@@ -52,10 +62,15 @@ new #[Layout('layouts::visitor')] class extends Component {
     <div class="space-y-2">
         <flux:heading size="xl" level="1">{{ $museum->name() }}</flux:heading>
 
-        @unless ($museum->isFree())
-            <flux:text>音声ガイド {{ number_format($museum->guide_price) }}円</flux:text>
-        @endunless
     </div>
+
+    @unless ($museum->isFree())
+        @if ($this->validPass !== null)
+            <flux:callout icon="check-circle" color="green" text="音声ガイドを利用できます（{{ $this->validPass->expiresAtLabel() }} まで）。" />
+        @else
+            <x-pages::visitor.purchase-form :museum="$museum" />
+        @endif
+    @endunless
 
     <div class="space-y-3">
         <flux:heading size="lg" level="2">開催中の展示</flux:heading>

@@ -35,6 +35,17 @@ new #[Layout('layouts::visitor')] class extends Component {
     }
 
     /**
+     * Determine whether the visitor can read the description and hear the audio.
+     */
+    #[Computed]
+    public function hasAccess(): bool
+    {
+        $museum = $this->artwork->exhibition->museum;
+
+        return $museum->grantsAccessWith($museum->passTokenFrom(request()));
+    }
+
+    /**
      * Render the component.
      */
     public function render(): View
@@ -62,7 +73,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         </flux:text>
     </div>
 
-    @if ($museum->isFree())
+    @if ($this->hasAccess)
         @if (filled($this->translation?->description))
             <flux:text class="whitespace-pre-line">{{ $this->translation->description }}</flux:text>
         @endif
@@ -75,9 +86,6 @@ new #[Layout('layouts::visitor')] class extends Component {
             </flux:button>
         @endif
     @else
-        <flux:callout icon="lock-closed">
-            <flux:callout.heading>解説と音声は音声ガイドの購入が必要です</flux:callout.heading>
-            <flux:callout.text>音声ガイド {{ number_format($museum->guide_price) }}円</flux:callout.text>
-        </flux:callout>
+        <x-pages::visitor.purchase-form :museum="$museum" />
     @endif
 </div>

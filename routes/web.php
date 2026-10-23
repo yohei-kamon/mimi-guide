@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AudioGuideController;
+use App\Http\Controllers\GuidePassController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -10,6 +11,8 @@ Route::livewire('e/{exhibition:slug}', 'pages::visitor.exhibition')->name('visit
 Route::livewire('e/{exhibition:slug}/play', 'pages::visitor.play')->name('visitor.exhibition.play');
 Route::livewire('a/{artwork:slug}', 'pages::visitor.artwork')->name('visitor.artwork');
 Route::get('a/{artwork:slug}/audio', [AudioGuideController::class, 'show'])->name('visitor.artwork.audio');
+Route::post('m/{museum:slug}/passes', [GuidePassController::class, 'store'])->middleware('throttle:10,1')->name('visitor.passes.store');
+Route::livewire('passes/complete', 'pages::visitor.pass-complete')->name('visitor.passes.complete');
 
 Route::middleware(['auth', 'verified', 'role:staff'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

@@ -4,22 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Models\Artwork;
 use App\Models\AudioGuide;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AudioGuideController extends Controller
 {
     /**
-     * Stream the artwork's audio guide to a visitor. The file supports Range requests for seeking.
+     * Stream the artwork's audio guide to a visitor holding a valid pass in a paid museum.
+     * The file supports Range requests for seeking.
      */
-    public function show(Artwork $artwork): BinaryFileResponse
+    public function show(Request $request, Artwork $artwork): BinaryFileResponse
     {
         $artwork->load('audioGuides', 'exhibition.museum');
 
         abort_unless($artwork->isVisibleToVisitors(), 404);
 
-        // Until guide passes are implemented, the audio of a paid museum is never served.
-        abort_unless($artwork->exhibition->museum->isFree(), 403);
+        $museum = $artwork->exhibition->museum;
+
+        abort_unless($museum->grantsAccessWith($museum->passTokenFrom($request)), 403);
 
         $audioGuide = $artwork->audioGuide();
 

@@ -83,7 +83,7 @@ test('an artwork of a paid museum hides the description', function () {
         ->assertOk()
         ->assertSee($translation->title)
         ->assertDontSee($translation->description)
-        ->assertSee('音声ガイド 800円');
+        ->assertSee('音声ガイドを購入（800円）');
 });
 
 test('the artwork page is not found when the artwork, exhibition or museum is hidden', function (Artwork $artwork) {

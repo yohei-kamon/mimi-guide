@@ -33,6 +33,17 @@ new #[Layout('layouts::visitor')] class extends Component {
     }
 
     /**
+     * Determine whether the visitor can hear the audio guide of the museum.
+     */
+    #[Computed]
+    public function hasAccess(): bool
+    {
+        $museum = $this->exhibition->museum;
+
+        return $museum->grantsAccessWith($museum->passTokenFrom(request()));
+    }
+
+    /**
      * Get the published artworks that have audio, in playback order, as the data the player needs.
      *
      * @return list<array{slug: string, guideNumber: int, title: string, credit: string, description: string, imageUrl: string|null, audioUrl: string, artworkUrl: string}>
@@ -88,11 +99,8 @@ new #[Layout('layouts::visitor')] class extends Component {
         <flux:link :href="route('visitor.exhibition', $exhibition)" wire:navigate>{{ $exhibition->name() }}</flux:link>
     </flux:text>
 
-    @if (! $museum->isFree())
-        <flux:callout icon="lock-closed">
-            <flux:callout.heading>連続再生は音声ガイドの購入が必要です</flux:callout.heading>
-            <flux:callout.text>音声ガイド {{ number_format($museum->guide_price) }}円</flux:callout.text>
-        </flux:callout>
+    @if (! $this->hasAccess)
+        <x-pages::visitor.purchase-form :museum="$museum" />
     @elseif ($this->playlist === [])
         <flux:text>音声のある作品はまだありません。</flux:text>
     @else
