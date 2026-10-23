@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\ConfirmGuidePassPayment;
 use App\Enums\GuidePassStatus;
 use App\Models\Exhibition;
 use App\Models\GuidePass;
@@ -19,7 +20,7 @@ new #[Layout('layouts::visitor')] class extends Component {
     /**
      * Mount the component. Confirm the payment with Stripe in case the page opens before the webhook arrives.
      */
-    public function mount(CheckoutService $checkout): void
+    public function mount(CheckoutService $checkout, ConfirmGuidePassPayment $confirmPayment): void
     {
         $sessionId = (string) request()->query('session_id', '');
 
@@ -31,11 +32,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         abort_if($sessionId === '' || $guidePass === null, 404);
 
         if ($guidePass->status === GuidePassStatus::Pending) {
-            $session = $checkout->retrieveSession($sessionId);
-
-            if ($session->payment_status === 'paid') {
-                $guidePass->markAsPaid($session->customer_details?->email);
-            }
+            $confirmPayment->handle($guidePass, $checkout->retrieveSession($sessionId));
         }
 
         Cookie::queue($guidePass->museum->passCookie($guidePass));

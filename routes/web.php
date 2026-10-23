@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AudioGuideController;
 use App\Http\Controllers\GuidePassController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -13,6 +14,8 @@ Route::livewire('a/{artwork:slug}', 'pages::visitor.artwork')->name('visitor.art
 Route::get('a/{artwork:slug}/audio', [AudioGuideController::class, 'show'])->name('visitor.artwork.audio');
 Route::post('m/{museum:slug}/passes', [GuidePassController::class, 'store'])->middleware('throttle:10,1')->name('visitor.passes.store');
 Route::livewire('passes/complete', 'pages::visitor.pass-complete')->name('visitor.passes.complete');
+Route::get('passes/{token}', [GuidePassController::class, 'show'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:30,1')->name('visitor.passes.show');
+Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
 Route::middleware(['auth', 'verified', 'role:staff'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureUserHasRole::class,
         ]);
 
+        $middleware->preventRequestForgery(except: ['stripe/webhook']);
+
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()->role->homePath());
     })
     ->withExceptions(function (Exceptions $exceptions): void {
