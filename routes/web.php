@@ -18,7 +18,7 @@ Route::get('passes/{token}', [GuidePassController::class, 'show'])->where('token
 Route::post('stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
 Route::middleware(['auth', 'verified', 'role:staff'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
 
     Route::livewire('exhibitions', 'pages::exhibitions.index')->name('exhibitions.index');
     Route::livewire('exhibitions/create', 'pages::exhibitions.create')->name('exhibitions.create');
