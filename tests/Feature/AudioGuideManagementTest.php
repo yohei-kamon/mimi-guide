@@ -1,11 +1,16 @@
 <?php
 
 use App\Models\Artwork;
+use App\Models\ArtworkTranslation;
 use App\Models\AudioGuide;
 use App\Models\Exhibition;
 use App\Models\Museum;
 use App\Models\User;
+use App\Services\TextToSpeechService;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -147,3 +152,160 @@ test('staff can preview the audio guides of their museum only', function () {
         ->get(route('audio-guides.preview', $audioGuide))
         ->assertForbidden();
 });
+
+test('staff can generate an audio guide from the description in the selected locale', function () {
+    [$user, $artwork] = staffWithArtwork();
+    ArtworkTranslation::factory()->for($artwork)->locale('en')->create(['description' => 'A wave off the coast.']);
+
+    $this->mock(TextToSpeechService::class)
+        ->shouldReceive('synthesize')
+        ->once()
+        ->with('A wave off the coast.', 'en')
+        ->andReturn('mp3-audio');
+
+    Livewire::actingAs($user)
+        ->test('pages::artworks.edit', ['artwork' => $artwork])
+        ->set('audioForm.locale', 'en')
+        ->call('generateAudio')
+        ->assertHasNoErrors();
+
+    $audioGuide = $artwork->audioGuides()->sole();
+
+    expect($audioGuide->locale)->toBe('en')
+        ->and($audioGuide->mime_type)->toBe('audio/mpeg')
+        ->and($audioGuide->size)->toBe(strlen('mp3-audio'))
+        ->and($audioGuide->path)->toStartWith("audio/{$user->museum_id}/");
+
+    expect(Storage::disk(AudioGuide::DISK)->get($audioGuide->path))->toBe('mp3-audio');
+});
+
+test('generating in a locale with an audio guide replaces it and removes the old file', function () {
+    [$user, $artwork] = staffWithArtwork();
+    $oldAudioGuide = AudioGuide::factory()->for($artwork)->create(['locale' => 'ja']);
+    Storage::disk(AudioGuide::DISK)->put($oldAudioGuide->path, 'old');
+
+    $this->mock(TextToSpeechService::class)
+        ->shouldReceive('synthesize')
+        ->once()
+        ->andReturn('new');
+
+    Livewire::actingAs($user)
+        ->test('pages::artworks.edit', ['artwork' => $artwork])
+        ->call('generateAudio')
+        ->assertHasNoErrors();
+
+    $audioGuide = $artwork->audioGuides()->sole();
+
+    expect($audioGuide->path)->not->toBe($oldAudioGuide->path);
+    Storage::disk(AudioGuide::DISK)->assertMissing($oldAudioGuide->path);
+    Storage::disk(AudioGuide::DISK)->assertExists($audioGuide->path);
+});
+
+test('audio guide is not generated without a description in that exact locale', function () {
+    [$user, $artwork] = staffWithArtwork();
+
+    $this->mock(TextToSpeechService::class)->shouldNotReceive('synthesize');
+
+    Livewire::actingAs($user)
+        ->test('pages::artworks.edit', ['artwork' => $artwork])
+        ->set('audioForm.locale', 'en')
+        ->call('generateAudio')
+        ->assertHasErrors('audioForm.locale');
+
+    expect(AudioGuide::count())->toBe(0);
+});
+
+test('nothing is saved when text to speech fails', function () {
+    [$user, $artwork] = staffWithArtwork();
+
+    $this->mock(TextToSpeechService::class)
+        ->shouldReceive('synthesize')
+        ->andThrow(new ConnectionException('timeout'));
+
+    Livewire::actingAs($user)
+        ->test('pages::artworks.edit', ['artwork' => $artwork])
+        ->call('generateAudio')
+        ->assertOk();
+
+    expect(AudioGuide::count())->toBe(0)
+        ->and(Storage::disk(AudioGuide::DISK)->allFiles())->toBeEmpty();
+});
+
+test('staff cannot generate an audio guide for an artwork of another museum', function () {
+    [$user] = staffWithArtwork();
+    $otherArtwork = Artwork::factory()->create();
+
+    $this->mock(TextToSpeechService::class)->shouldNotReceive('synthesize');
+
+    Livewire::actingAs($user)
+        ->test('pages::artworks.edit', ['artwork' => $otherArtwork])
+        ->assertForbidden();
+});
+
+test('text to speech sends the text and language to ElevenLabs with the configured voice and model', function (string $locale, string $languageCode) {
+    config([
+        'services.elevenlabs.key' => 'test-key',
+        'services.elevenlabs.voice_id' => 'voice-1',
+        'services.elevenlabs.model_id' => 'eleven_v4',
+    ]);
+    Http::fake(['api.elevenlabs.io/*' => Http::response('mp3-audio')]);
+
+    expect(app(TextToSpeechService::class)->synthesize('こんにちは', $locale))->toBe('mp3-audio');
+
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://api.elevenlabs.io/v1/text-to-speech/voice-1?output_format=mp3_44100_128'
+        && $request->hasHeader('xi-api-key', 'test-key')
+        && $request['text'] === 'こんにちは'
+        && $request['model_id'] === 'eleven_v4'
+        && $request['language_code'] === $languageCode);
+})->with([
+    'Japanese' => ['ja', 'ja'],
+    'Simplified Chinese' => ['zh-Hans', 'zh'],
+]);
+
+test('text to speech does not send the language to a model that rejects it', function () {
+    config(['services.elevenlabs.model_id' => 'eleven_multilingual_v2']);
+    Http::fake(['api.elevenlabs.io/*' => Http::response('mp3-audio')]);
+
+    app(TextToSpeechService::class)->synthesize('こんにちは', 'ja');
+
+    Http::assertSent(fn (Request $request) => ! array_key_exists('language_code', $request->data()));
+});
+
+test('generating in the default locale reads its own description, not a translation', function () {
+    [$user, $artwork] = staffWithArtwork();
+    $artwork->translations()->where('locale', 'ja')->delete();
+    ArtworkTranslation::factory()->for($artwork)->locale('ja')->create(['description' => '沖の波。']);
+    ArtworkTranslation::factory()->for($artwork)->locale('en')->create(['description' => 'A wave off the coast.']);
+
+    $this->mock(TextToSpeechService::class)
+        ->shouldReceive('synthesize')
+        ->once()
+        ->with('沖の波。', 'ja')
+        ->andReturn('mp3-audio');
+
+    Livewire::actingAs($user)
+        ->test('pages::artworks.edit', ['artwork' => $artwork])
+        ->call('generateAudio')
+        ->assertHasNoErrors();
+
+    expect($artwork->audioGuides()->sole()->locale)->toBe('ja');
+});
+
+test('audio guide is not generated while the description in that locale has unsaved changes', function (string $locale, string $property) {
+    [$user, $artwork] = staffWithArtwork();
+    ArtworkTranslation::factory()->for($artwork)->locale('en')->create(['description' => 'A wave off the coast.']);
+
+    $this->mock(TextToSpeechService::class)->shouldNotReceive('synthesize');
+
+    Livewire::actingAs($user)
+        ->test('pages::artworks.edit', ['artwork' => $artwork])
+        ->set($property, 'Not saved yet.')
+        ->set('audioForm.locale', $locale)
+        ->call('generateAudio')
+        ->assertHasErrors('audioForm.locale');
+
+    expect(AudioGuide::count())->toBe(0);
+})->with([
+    'default locale' => ['ja', 'form.description'],
+    'translation' => ['en', 'translationForm.description'],
+]);

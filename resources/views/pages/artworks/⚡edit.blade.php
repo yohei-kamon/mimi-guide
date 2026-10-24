@@ -2,9 +2,13 @@
 
 use App\Enums\PublishStatus;
 use App\Livewire\Forms\ArtworkForm;
+use App\Livewire\Forms\ArtworkTranslationForm;
 use App\Livewire\Forms\AudioGuideForm;
 use App\Models\Artwork;
+use App\Services\TextToSpeechService;
 use Flux\Flux;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -18,6 +22,8 @@ new #[Title('作品の編集')] class extends Component {
 
     public ArtworkForm $form;
 
+    public ArtworkTranslationForm $translationForm;
+
     public AudioGuideForm $audioForm;
 
     /**
@@ -29,6 +35,13 @@ new #[Title('作品の編集')] class extends Component {
 
         $this->artwork = $artwork;
         $this->form->fillFromArtwork($artwork);
+
+        $translationLocales = ArtworkTranslationForm::localesFor($artwork);
+
+        if ($translationLocales !== []) {
+            $this->translationForm->fillFor($artwork, $translationLocales[0]);
+        }
+
         $this->audioForm->locale = $artwork->exhibition->museum->default_locale;
     }
 
@@ -42,6 +55,42 @@ new #[Title('作品の編集')] class extends Component {
         $this->form->update($this->artwork);
 
         Flux::toast(variant: 'success', text: '作品を保存しました。');
+    }
+
+    /**
+     * Fill the translation form from the newly selected locale.
+     */
+    public function updated(string $property): void
+    {
+        if ($property === 'translationForm.locale') {
+            $this->translationForm->fillFor($this->artwork, $this->translationForm->locale);
+        }
+    }
+
+    /**
+     * Add or replace the artwork's translation in the selected locale.
+     */
+    public function saveTranslation(): void
+    {
+        $this->authorize('update', $this->artwork);
+
+        $this->translationForm->save($this->artwork);
+        $this->artwork->unsetRelation('translations');
+
+        Flux::toast(variant: 'success', text: '翻訳を保存しました。');
+    }
+
+    /**
+     * Delete the artwork's translation in the selected locale, so the default locale is shown instead.
+     */
+    public function deleteTranslation(): void
+    {
+        $this->authorize('update', $this->artwork);
+
+        $this->translationForm->delete($this->artwork);
+        $this->artwork->unsetRelation('translations');
+
+        Flux::toast(variant: 'success', text: '翻訳を削除しました。');
     }
 
     /**
@@ -71,6 +120,57 @@ new #[Title('作品の編集')] class extends Component {
         $this->artwork->unsetRelation('audioGuides');
 
         Flux::toast(variant: 'success', text: '音声を登録しました。');
+    }
+
+    /**
+     * Generate the audio guide in the selected locale from its description with text to speech.
+     */
+    public function generateAudio(TextToSpeechService $textToSpeech): void
+    {
+        $this->authorize('update', $this->artwork);
+
+        if ($this->hasUnsavedDescription($this->audioForm->locale)) {
+            $this->addError('audioForm.locale', '解説文に保存していない変更があります。先に保存してください。');
+
+            return;
+        }
+
+        try {
+            $audioGuide = $this->audioForm->generate($this->artwork, $textToSpeech);
+        } catch (ConnectionException|RequestException $exception) {
+            report($exception);
+
+            Flux::toast(variant: 'danger', text: '音声の生成に失敗しました。時間をおいて再度お試しください。');
+
+            return;
+        }
+
+        if ($audioGuide === null) {
+            return;
+        }
+
+        $this->artwork->unsetRelation('audioGuides');
+
+        Flux::toast(variant: 'success', text: '音声を生成しました。');
+    }
+
+    /**
+     * Determine whether the description being edited in the locale differs from the saved one,
+     * so audio is not generated from an outdated description.
+     */
+    private function hasUnsavedDescription(string $locale): bool
+    {
+        $editedDescription = match ($locale) {
+            $this->artwork->exhibition->museum->default_locale => $this->form->description,
+            $this->translationForm->locale => $this->translationForm->description,
+            default => null,
+        };
+
+        if ($editedDescription === null) {
+            return false;
+        }
+
+        return $editedDescription !== (string) $this->artwork->translations()->where('locale', $locale)->value('description');
     }
 
     /**
@@ -136,6 +236,60 @@ new #[Title('作品の編集')] class extends Component {
 
     <div class="space-y-4">
         <div>
+            <flux:heading>翻訳</flux:heading>
+            <flux:text class="mt-1">既定言語以外の作品名・作者・制作年・解説文を登録します。翻訳が無い言語では既定言語で表示します。</flux:text>
+        </div>
+
+        @php($translationLocales = \App\Livewire\Forms\ArtworkTranslationForm::localesFor($artwork))
+
+        @if ($translationLocales === [])
+            <flux:text>この館の対応言語は既定言語のみです。</flux:text>
+        @else
+            <div class="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-700 dark:border-zinc-700">
+                @foreach ($translationLocales as $locale)
+                    <div class="flex items-center gap-4 p-4" wire:key="translation-{{ $locale }}">
+                        <div class="w-24 shrink-0 font-medium">{{ config("mimi.locales.{$locale}", $locale) }}</div>
+
+                        @if ($artwork->translations->contains('locale', $locale))
+                            <flux:badge size="sm" color="green">登録済み</flux:badge>
+                        @else
+                            <flux:text>未登録</flux:text>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+            <form wire:submit="saveTranslation" class="space-y-6">
+                <flux:select wire:model.live="translationForm.locale" label="言語" class="sm:max-w-40">
+                    @foreach ($translationLocales as $locale)
+                        <flux:select.option :value="$locale">{{ config("mimi.locales.{$locale}", $locale) }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:input wire:model="translationForm.title" label="作品名" type="text" required />
+
+                <div class="grid gap-6 sm:grid-cols-2">
+                    <flux:input wire:model="translationForm.artist" label="作者" type="text" />
+                    <flux:input wire:model="translationForm.productionYear" label="制作年" type="text" />
+                </div>
+
+                <flux:textarea wire:model="translationForm.description" label="解説文" rows="6" description="音声の読み上げ原稿も兼ねます" />
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <flux:button variant="primary" type="submit" wire:loading.attr="disabled" wire:target="translationForm.locale,saveTranslation">翻訳を保存する</flux:button>
+
+                    @if ($artwork->translations->contains('locale', $translationForm->locale))
+                        <flux:button variant="ghost" icon="trash" wire:click="deleteTranslation" wire:confirm="この言語の翻訳を削除しますか？音声は削除されません。">翻訳を削除</flux:button>
+                    @endif
+                </div>
+            </form>
+        @endif
+    </div>
+
+    <flux:separator />
+
+    <div class="space-y-4">
+        <div>
             <flux:heading>音声</flux:heading>
             <flux:text class="mt-1">言語ごとに1件まで登録できます。同じ言語で登録すると差し替えます。</flux:text>
         </div>
@@ -168,7 +322,23 @@ new #[Title('作品の編集')] class extends Component {
                 <flux:input wire:model="audioForm.file" type="file" label="音声ファイル" accept=".mp3,.m4a,audio/mpeg,audio/mp4" description="MP3 / M4A、20MB まで" />
             </div>
 
-            <flux:button type="submit" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="audioForm.file,saveAudio">音声を登録する</flux:button>
+            <div class="flex flex-wrap items-center gap-2">
+                <flux:button type="submit" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="audioForm.file,saveAudio,generateAudio">音声を登録する</flux:button>
+                <flux:button
+                    type="button"
+                    icon="sparkles"
+                    wire:click="generateAudio"
+                    wire:confirm="選択した言語の解説文から音声を生成します。登録済みの音声は差し替わります。よろしいですか？"
+                    wire:loading.attr="disabled"
+                    wire:target="saveAudio,generateAudio"
+                    x-bind:disabled="$wire.$dirty(['form.description', 'translationForm.description'])"
+                >
+                    <span wire:loading.remove wire:target="generateAudio">解説文から生成する</span>
+                    <span wire:loading wire:target="generateAudio">生成中…</span>
+                </flux:button>
+            </div>
+            <flux:text wire:show="$dirty(['form.description', 'translationForm.description'])" wire:cloak class="text-amber-600! dark:text-amber-400!">解説文に保存していない変更があります。先に保存してください。</flux:text>
+            <flux:text>「解説文から生成する」は、選択した言語の解説文を読み上げた音声を作ります（数十秒かかることがあります）。</flux:text>
         </form>
     </div>
 
