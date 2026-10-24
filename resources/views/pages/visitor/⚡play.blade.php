@@ -111,15 +111,38 @@ new #[Layout('layouts::visitor')] class extends Component {
                 index: @js($this->startIndex),
                 playing: false,
                 finished: false,
+                gapSeconds: 5,
+                countdown: 0,
+                gapTimer: null,
                 get current() { return this.playlist[this.index] },
+                get waiting() { return this.gapTimer !== null },
                 load(index) {
+                    this.cancelGap()
                     this.index = index
                     this.finished = false
                     this.$refs.audio.src = this.current.audioUrl
                     this.$refs.audio.play()
                 },
+                waitThenPlay(index) {
+                    this.cancelGap()
+                    this.index = index
+                    this.$refs.audio.src = this.current.audioUrl
+                    this.countdown = this.gapSeconds
+                    this.gapTimer = setInterval(() => {
+                        this.countdown--
+                        if (this.countdown <= 0) {
+                            this.cancelGap()
+                            this.$refs.audio.play()
+                        }
+                    }, 1000)
+                },
+                cancelGap() {
+                    clearInterval(this.gapTimer)
+                    this.gapTimer = null
+                },
                 toggle() {
                     const audio = this.$refs.audio
+                    if (this.waiting) { this.cancelGap(); return audio.play() }
                     if (this.finished) { return this.load(0) }
                     if (! audio.getAttribute('src')) { return this.load(this.index) }
                     audio.paused ? audio.play() : audio.pause()
@@ -127,7 +150,7 @@ new #[Layout('layouts::visitor')] class extends Component {
                 previous() { if (this.index > 0) { this.load(this.index - 1) } },
                 next() { if (this.index < this.playlist.length - 1) { this.load(this.index + 1) } },
                 ended() {
-                    if (this.index < this.playlist.length - 1) { return this.load(this.index + 1) }
+                    if (this.index < this.playlist.length - 1) { return this.waitThenPlay(this.index + 1) }
                     this.finished = true
                 },
             }"
@@ -155,11 +178,17 @@ new #[Layout('layouts::visitor')] class extends Component {
                 <flux:callout icon="check-circle" color="green" text="この展示のガイドは以上です。" />
             </div>
 
+            <div x-show="waiting" x-cloak class="flex items-center justify-between gap-4 rounded-lg bg-zinc-100 px-4 py-3 dark:bg-zinc-700">
+                <flux:text x-text="`${countdown}秒後に次の作品を再生します`"></flux:text>
+                <flux:button size="sm" variant="ghost" x-on:click="cancelGap()">やめる</flux:button>
+            </div>
+
             <div class="flex items-center justify-center gap-4">
                 <flux:button icon="backward" x-on:click="previous()" x-bind:disabled="index === 0" aria-label="前の作品" />
                 <flux:button variant="primary" x-on:click="toggle()" class="min-w-32">
-                    <span x-show="! playing">再生</span>
-                    <span x-show="playing" x-cloak>一時停止</span>
+                    <span x-show="waiting" x-cloak>今すぐ再生</span>
+                    <span x-show="! waiting && ! playing">再生</span>
+                    <span x-show="! waiting && playing" x-cloak>一時停止</span>
                 </flux:button>
                 <flux:button icon="forward" x-on:click="next()" x-bind:disabled="index === playlist.length - 1" aria-label="次の作品" />
             </div>
