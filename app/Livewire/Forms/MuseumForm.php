@@ -4,6 +4,7 @@ namespace App\Livewire\Forms;
 
 use App\Models\Museum;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -133,7 +134,7 @@ class MuseumForm extends Form
     {
         return [
             'slug' => $this->slug,
-            'locales' => array_values(array_intersect(array_keys(config('mimi.locales')), $this->locales)),
+            'locales' => array_values(array_intersect(array_filter(array_keys(Config::array('mimi.locales')), 'is_string'), $this->locales)),
             'default_locale' => $this->defaultLocale,
         ];
     }
