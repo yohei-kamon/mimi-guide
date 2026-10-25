@@ -69,7 +69,7 @@ new #[Layout('layouts::visitor')] class extends Component {
                 'credit' => collect([$artwork->translated('artist', $this->locale), $artwork->translated('production_year', $this->locale)])->filter()->join('、'),
                 'description' => $artwork->translated('description', $this->locale) ?? '',
                 'imageUrl' => $artwork->image_path !== null ? Storage::disk('public')->url($artwork->image_path) : null,
-                'audioUrl' => route('visitor.artwork.audio', $artwork),
+                'audioUrl' => $artwork->audioUrl($this->locale),
                 'artworkUrl' => route('visitor.artwork', $artwork),
             ])
             ->values()

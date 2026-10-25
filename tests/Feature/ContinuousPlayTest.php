@@ -16,7 +16,7 @@ test('the playlist holds only published artworks with audio, in playback order',
     $component = Livewire::test('pages::visitor.play', ['exhibition' => $exhibition]);
 
     expect(array_column($component->instance()->playlist, 'slug'))->toBe([$first->slug, $second->slug])
-        ->and($component->instance()->playlist[0]['audioUrl'])->toBe(route('visitor.artwork.audio', $first))
+        ->and($component->instance()->playlist[0]['audioUrl'])->toBe($first->audioUrl())
         ->and($component->instance()->startIndex)->toBe(0);
 });
 

@@ -79,7 +79,7 @@ new #[Layout('layouts::visitor')] class extends Component {
                 <flux:text>この言語の音声はありません。</flux:text>
             @endif
 
-            <audio controls preload="none" src="{{ route('visitor.artwork.audio', $artwork) }}" class="w-full"></audio>
+            <audio controls preload="none" src="{{ $artwork->audioUrl($locale) }}" class="w-full"></audio>
 
             <flux:button icon="play" :href="route('visitor.exhibition.play', [$artwork->exhibition, 'from' => $artwork->slug])" class="w-full">
                 ここから続けて再生

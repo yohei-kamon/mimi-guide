@@ -111,6 +111,23 @@ class Artwork extends Model
     }
 
     /**
+     * Get the visitor URL of the audio guide for the given locale, or null when there is none.
+     *
+     * The `v` query changes with the audio file, so the browser does not replay a cached file
+     * after the visitor switches the locale or the audio is replaced.
+     */
+    public function audioUrl(?string $locale = null): ?string
+    {
+        $audioGuide = $this->audioGuide($locale);
+
+        if ($audioGuide === null) {
+            return null;
+        }
+
+        return route('visitor.artwork.audio', [$this, 'v' => substr(sha1($audioGuide->path), 0, 12)]);
+    }
+
+    /**
      * Delete the artwork after deleting its audio files; the records are removed by the cascade.
      */
     public function deleteWithFiles(): void

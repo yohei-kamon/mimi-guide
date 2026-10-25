@@ -126,6 +126,24 @@ test('the audio is streamed in the chosen locale', function () {
     expect($response->baseResponse->getFile()->getContent())->toBe('english audio');
 });
 
+test('the audio URL changes with the chosen locale so the browser does not replay a cached file', function () {
+    $artwork = bilingualArtwork();
+    AudioGuide::factory()->for($artwork)->locale('ja')->create();
+    AudioGuide::factory()->for($artwork)->locale('en')->create();
+    $artwork->load('audioGuides');
+
+    expect($artwork->audioUrl('ja'))->not->toBe($artwork->audioUrl('en'))
+        ->and($artwork->audioUrl('ja'))->toBe($artwork->audioUrl('ja'))
+        ->and($artwork->audioUrl('ja'))->toStartWith(route('visitor.artwork.audio', $artwork).'?v=');
+
+    $this->get(route('visitor.artwork', [$artwork, 'lang' => 'en']))
+        ->assertSee($artwork->audioUrl('en'), false);
+
+    $this->get(route('visitor.artwork', [$artwork, 'lang' => 'ja']))
+        ->assertSee($artwork->audioUrl('ja'), false)
+        ->assertDontSee($artwork->audioUrl('en'), false);
+});
+
 test('the audio falls back to the default locale with a notice when the chosen locale has none', function () {
     Storage::fake(AudioGuide::DISK);
     $artwork = bilingualArtwork();
