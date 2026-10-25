@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -17,6 +19,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
  * @property int $id
+ * @property UserRole $role
+ * @property int|null $museum_id
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -45,7 +49,34 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => UserRole::class,
         ];
+    }
+
+    /**
+     * Get the museum the staff member belongs to (null for administrators).
+     *
+     * @return BelongsTo<Museum, $this>
+     */
+    public function museum(): BelongsTo
+    {
+        return $this->belongsTo(Museum::class);
+    }
+
+    /**
+     * Determine whether the user is a platform administrator.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
+
+    /**
+     * Determine whether the user is a museum staff member.
+     */
+    public function isStaff(): bool
+    {
+        return $this->role === UserRole::Staff;
     }
 
     /**
