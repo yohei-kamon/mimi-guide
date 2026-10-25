@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Artwork;
-use App\Models\ArtworkTranslation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
@@ -13,6 +12,9 @@ new #[Layout('layouts::visitor')] class extends Component {
     #[Locked]
     public Artwork $artwork;
 
+    #[Locked]
+    public string $locale = '';
+
     /**
      * Mount the component.
      */
@@ -23,15 +25,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         abort_unless($artwork->isVisibleToVisitors(), 404);
 
         $this->artwork = $artwork;
-    }
-
-    /**
-     * Get the artwork's translation to display.
-     */
-    #[Computed]
-    public function translation(): ?ArtworkTranslation
-    {
-        return $this->artwork->translation();
+        $this->locale = $artwork->exhibition->museum->visitorLocale(request());
     }
 
     /**
@@ -50,7 +44,7 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function render(): View
     {
-        return $this->view()->title($this->artwork->title());
+        return $this->view()->title($this->artwork->title($this->locale));
     }
 }; ?>
 
@@ -58,27 +52,33 @@ new #[Layout('layouts::visitor')] class extends Component {
     @php($museum = $artwork->exhibition->museum)
 
     <flux:text>
-        <flux:link :href="route('visitor.exhibition', $artwork->exhibition)" wire:navigate>{{ $artwork->exhibition->name() }}</flux:link>
+        <flux:link :href="route('visitor.exhibition', $artwork->exhibition)" wire:navigate>{{ $artwork->exhibition->name($locale) }}</flux:link>
     </flux:text>
 
     @if ($artwork->image_path !== null)
-        <img src="{{ Storage::disk('public')->url($artwork->image_path) }}" alt="{{ $artwork->title() }}" class="w-full rounded-lg object-contain">
+        <img src="{{ Storage::disk('public')->url($artwork->image_path) }}" alt="{{ $artwork->title($locale) }}" class="w-full rounded-lg object-contain">
     @endif
 
     <div class="space-y-1">
         <flux:text>No. {{ $artwork->guide_number }}</flux:text>
-        <flux:heading size="xl" level="1">{{ $artwork->title() }}</flux:heading>
+        <flux:heading size="xl" level="1">{{ $artwork->title($locale) }}</flux:heading>
         <flux:text>
-            {{ collect([$this->translation?->artist, $this->translation?->production_year])->filter()->join('、') }}
+            {{ collect([$artwork->translated('artist', $locale), $artwork->translated('production_year', $locale)])->filter()->join('、') }}
         </flux:text>
     </div>
 
+    <x-pages::visitor.locale-switcher :museum="$museum" :locale="$locale" />
+
     @if ($this->hasAccess)
-        @if (filled($this->translation?->description))
-            <flux:text class="whitespace-pre-line">{{ $this->translation->description }}</flux:text>
+        @if (filled($artwork->translated('description', $locale)))
+            <flux:text class="whitespace-pre-line">{{ $artwork->translated('description', $locale) }}</flux:text>
         @endif
 
-        @if ($artwork->audioGuide() !== null)
+        @if ($artwork->audioGuide($locale) !== null)
+            @if ($artwork->audioGuide($locale)->locale !== $locale)
+                <flux:text>この言語の音声はありません。</flux:text>
+            @endif
+
             <audio controls preload="none" src="{{ route('visitor.artwork.audio', $artwork) }}" class="w-full"></audio>
 
             <flux:button icon="play" :href="route('visitor.exhibition.play', [$artwork->exhibition, 'from' => $artwork->slug])" class="w-full">

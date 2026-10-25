@@ -12,6 +12,7 @@ class AudioGuideController extends Controller
 {
     /**
      * Stream the artwork's audio guide to a visitor holding a valid pass in a paid museum.
+     * The visitor's locale is used, falling back to the museum's default locale.
      * The file supports Range requests for seeking.
      */
     public function show(Request $request, Artwork $artwork): BinaryFileResponse
@@ -24,7 +25,7 @@ class AudioGuideController extends Controller
 
         abort_unless($museum->grantsAccessWith($museum->passTokenFrom($request)), 403);
 
-        $audioGuide = $artwork->audioGuide();
+        $audioGuide = $artwork->audioGuide($museum->visitorLocale($request));
 
         abort_if($audioGuide === null, 404);
 

@@ -30,6 +30,11 @@ class Museum extends Model
     use HasFactory;
 
     /**
+     * The session key that holds the locale the visitor chose.
+     */
+    public const VISITOR_LOCALE_SESSION_KEY = 'visitor_locale';
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -154,6 +159,27 @@ class Museum extends Model
     public function grantsAccessWith(?string $token): bool
     {
         return $this->isFree() || $this->validPass($token) !== null;
+    }
+
+    /**
+     * Get the visitor's locale for this museum.
+     *
+     * A supported `?lang=` is saved in the session. The session's locale is used when the museum supports it,
+     * otherwise the museum's default locale.
+     */
+    public function visitorLocale(Request $request): string
+    {
+        $requestedLocale = $request->query('lang');
+
+        if (is_string($requestedLocale) && in_array($requestedLocale, $this->locales, true)) {
+            session()->put(self::VISITOR_LOCALE_SESSION_KEY, $requestedLocale);
+        }
+
+        $sessionLocale = session(self::VISITOR_LOCALE_SESSION_KEY);
+
+        return is_string($sessionLocale) && in_array($sessionLocale, $this->locales, true)
+            ? $sessionLocale
+            : $this->default_locale;
     }
 
     /**

@@ -14,6 +14,9 @@ new #[Layout('layouts::visitor')] class extends Component {
     #[Locked]
     public Museum $museum;
 
+    #[Locked]
+    public string $locale = '';
+
     /**
      * Mount the component.
      */
@@ -22,6 +25,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         abort_unless($museum->is_active, 404);
 
         $this->museum = $museum->load('translations');
+        $this->locale = $museum->visitorLocale(request());
     }
 
     /**
@@ -54,14 +58,14 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function render(): View
     {
-        return $this->view()->title($this->museum->name());
+        return $this->view()->title($this->museum->name($this->locale));
     }
 }; ?>
 
 <div class="space-y-8">
     <div class="space-y-2">
-        <flux:heading size="xl" level="1">{{ $museum->name() }}</flux:heading>
-
+        <flux:heading size="xl" level="1">{{ $museum->name($locale) }}</flux:heading>
+        <x-pages::visitor.locale-switcher :museum="$museum" :locale="$locale" />
     </div>
 
     @unless ($museum->isFree())
@@ -77,7 +81,7 @@ new #[Layout('layouts::visitor')] class extends Component {
 
         @forelse ($this->exhibitions as $exhibition)
             <a href="{{ route('visitor.exhibition', $exhibition) }}" wire:navigate class="block rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
-                <flux:heading>{{ $exhibition->name() }}</flux:heading>
+                <flux:heading>{{ $exhibition->name($locale) }}</flux:heading>
                 <flux:text class="mt-1">{{ $exhibition->periodLabel() }}</flux:text>
             </a>
         @empty

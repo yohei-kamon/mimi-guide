@@ -13,6 +13,9 @@ new #[Layout('layouts::visitor')] class extends Component {
     #[Locked]
     public Exhibition $exhibition;
 
+    #[Locked]
+    public string $locale = '';
+
     public string $guideNumber = '';
 
     /**
@@ -28,6 +31,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         );
 
         $this->exhibition = $exhibition;
+        $this->locale = $exhibition->museum->visitorLocale(request());
     }
 
     /**
@@ -75,21 +79,23 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function render(): View
     {
-        return $this->view()->title($this->exhibition->name());
+        return $this->view()->title($this->exhibition->name($this->locale));
     }
 }; ?>
 
 <div class="space-y-8">
     <div class="space-y-2">
         <flux:text>
-            <flux:link :href="route('visitor.museum', $exhibition->museum)" wire:navigate>{{ $exhibition->museum->name() }}</flux:link>
+            <flux:link :href="route('visitor.museum', $exhibition->museum)" wire:navigate>{{ $exhibition->museum->name($locale) }}</flux:link>
         </flux:text>
-        <flux:heading size="xl" level="1">{{ $exhibition->name() }}</flux:heading>
+        <flux:heading size="xl" level="1">{{ $exhibition->name($locale) }}</flux:heading>
         <flux:text>{{ $exhibition->periodLabel() }}</flux:text>
 
-        @if (filled($exhibition->translation()?->description))
-            <flux:text class="whitespace-pre-line">{{ $exhibition->translation()->description }}</flux:text>
+        @if (filled($exhibition->translated('description', $locale)))
+            <flux:text class="whitespace-pre-line">{{ $exhibition->translated('description', $locale) }}</flux:text>
         @endif
+
+        <x-pages::visitor.locale-switcher :museum="$exhibition->museum" :locale="$locale" />
     </div>
 
     @if ($this->artworks->isNotEmpty())
@@ -111,7 +117,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         @forelse ($this->artworks as $artwork)
             <a href="{{ route('visitor.artwork', $artwork) }}" wire:navigate class="flex items-center gap-4 rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                 <span class="w-10 shrink-0 text-center text-lg font-semibold tabular-nums text-zinc-500">{{ $artwork->guide_number }}</span>
-                <flux:heading>{{ $artwork->title() }}</flux:heading>
+                <flux:heading>{{ $artwork->title($locale) }}</flux:heading>
             </a>
         @empty
             <flux:text>公開中の作品はありません。</flux:text>

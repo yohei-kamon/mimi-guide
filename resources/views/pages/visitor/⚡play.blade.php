@@ -14,6 +14,9 @@ new #[Layout('layouts::visitor')] class extends Component {
     public Exhibition $exhibition;
 
     #[Locked]
+    public string $locale = '';
+
+    #[Locked]
     public string $from = '';
 
     /**
@@ -30,6 +33,7 @@ new #[Layout('layouts::visitor')] class extends Component {
 
         $this->exhibition = $exhibition;
         $this->from = (string) request()->query('from', '');
+        $this->locale = $exhibition->museum->visitorLocale(request());
     }
 
     /**
@@ -57,13 +61,13 @@ new #[Layout('layouts::visitor')] class extends Component {
             ->with('translations', 'audioGuides')
             ->get()
             ->each->setRelation('exhibition', $this->exhibition)
-            ->filter(fn (Artwork $artwork) => $artwork->audioGuide() !== null)
+            ->filter(fn (Artwork $artwork) => $artwork->audioGuide($this->locale) !== null)
             ->map(fn (Artwork $artwork) => [
                 'slug' => $artwork->slug,
                 'guideNumber' => $artwork->guide_number,
-                'title' => $artwork->title(),
-                'credit' => collect([$artwork->translation()?->artist, $artwork->translation()?->production_year])->filter()->join('、'),
-                'description' => $artwork->translation()->description ?? '',
+                'title' => $artwork->title($this->locale),
+                'credit' => collect([$artwork->translated('artist', $this->locale), $artwork->translated('production_year', $this->locale)])->filter()->join('、'),
+                'description' => $artwork->translated('description', $this->locale) ?? '',
                 'imageUrl' => $artwork->image_path !== null ? Storage::disk('public')->url($artwork->image_path) : null,
                 'audioUrl' => route('visitor.artwork.audio', $artwork),
                 'artworkUrl' => route('visitor.artwork', $artwork),
@@ -88,7 +92,7 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function render(): View
     {
-        return $this->view()->title($this->exhibition->name());
+        return $this->view()->title($this->exhibition->name($this->locale));
     }
 }; ?>
 
@@ -96,7 +100,7 @@ new #[Layout('layouts::visitor')] class extends Component {
     @php($museum = $exhibition->museum)
 
     <flux:text>
-        <flux:link :href="route('visitor.exhibition', $exhibition)" wire:navigate>{{ $exhibition->name() }}</flux:link>
+        <flux:link :href="route('visitor.exhibition', $exhibition)" wire:navigate>{{ $exhibition->name($locale) }}</flux:link>
     </flux:text>
 
     @if (! $this->hasAccess)

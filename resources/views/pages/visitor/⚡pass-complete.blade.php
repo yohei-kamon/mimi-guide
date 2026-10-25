@@ -17,6 +17,9 @@ new #[Layout('layouts::visitor')] class extends Component {
     #[Locked]
     public GuidePass $guidePass;
 
+    #[Locked]
+    public string $locale = '';
+
     /**
      * Mount the component. Confirm the payment with Stripe in case the page opens before the webhook arrives.
      */
@@ -38,6 +41,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         Cookie::queue($guidePass->museum->passCookie($guidePass));
 
         $this->guidePass = $guidePass;
+        $this->locale = $guidePass->museum->visitorLocale(request());
     }
 
     /**
@@ -67,7 +71,7 @@ new #[Layout('layouts::visitor')] class extends Component {
 <div class="space-y-6">
     @php($museum = $guidePass->museum)
 
-    <flux:text>{{ $museum->name() }}</flux:text>
+    <flux:text>{{ $museum->name($locale) }}</flux:text>
 
     @if ($guidePass->isValid())
         <flux:callout icon="check-circle" color="green">
@@ -80,7 +84,7 @@ new #[Layout('layouts::visitor')] class extends Component {
 
             @foreach ($this->exhibitions as $exhibition)
                 <flux:button icon="play" :href="route('visitor.exhibition.play', $exhibition)" class="w-full">
-                    {{ $exhibition->name() }}を続けて再生
+                    {{ $exhibition->name($locale) }}を続けて再生
                 </flux:button>
             @endforeach
         </div>

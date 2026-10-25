@@ -86,6 +86,18 @@ class Exhibition extends Model
     }
 
     /**
+     * Get one translated attribute for the given locale, falling back to the default locale when it is blank.
+     *
+     * @param  'name'|'description'  $attribute
+     */
+    public function translated(string $attribute, ?string $locale = null): ?string
+    {
+        $value = $this->translation($locale)?->{$attribute};
+
+        return filled($value) ? $value : $this->translation()?->{$attribute};
+    }
+
+    /**
      * Get the exhibition's name for the given locale.
      */
     public function name(?string $locale = null): string
