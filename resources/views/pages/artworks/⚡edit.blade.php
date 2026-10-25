@@ -273,7 +273,17 @@ new #[Title('作品の編集')] class extends Component {
                     <flux:input wire:model="translationForm.productionYear" label="制作年" type="text" />
                 </div>
 
-                <flux:textarea wire:model="translationForm.description" label="解説文" rows="6" description="音声の読み上げ原稿も兼ねます" />
+                <flux:field>
+                    <flux:label>解説文</flux:label>
+                    <flux:description>音声の読み上げ原稿も兼ねます</flux:description>
+                    <flux:textarea wire:model="translationForm.description" rows="6" />
+                    <div
+                        class="text-right text-xs text-zinc-500 dark:text-zinc-400"
+                        x-text="[...($wire.translationForm.description ?? '')].length + '/10000'"
+                        :class="{ 'text-red-500! dark:text-red-400!': [...($wire.translationForm.description ?? '')].length > 10000 }"
+                    ></div>
+                    <flux:error name="translationForm.description" />
+                </flux:field>
 
                 <div class="flex flex-wrap items-center gap-2">
                     <flux:button variant="primary" type="submit" wire:loading.attr="disabled" wire:target="translationForm.locale,saveTranslation">翻訳を保存する</flux:button>
