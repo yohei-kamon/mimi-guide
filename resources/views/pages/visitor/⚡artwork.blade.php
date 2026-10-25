@@ -44,7 +44,7 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function render(): View
     {
-        return $this->view()->title($this->artwork->title($this->locale));
+        return $this->view()->title($this->artwork->title());
     }
 }; ?>
 
@@ -56,12 +56,12 @@ new #[Layout('layouts::visitor')] class extends Component {
     </flux:text>
 
     @if ($artwork->image_path !== null)
-        <img src="{{ Storage::disk('public')->url($artwork->image_path) }}" alt="{{ $artwork->title($locale) }}" class="w-full rounded-lg object-contain">
+        <img src="{{ Storage::disk('public')->url($artwork->image_path) }}" alt="{{ $artwork->title() }}" class="w-full rounded-lg object-contain">
     @endif
 
     <div class="space-y-1">
         <flux:text>No. {{ $artwork->guide_number }}</flux:text>
-        <flux:heading size="xl" level="1">{{ $artwork->title($locale) }}</flux:heading>
+        <flux:heading size="xl" level="1">{{ $artwork->title() }}</flux:heading>
         <flux:text>
             {{ collect([$artwork->translated('artist', $locale), $artwork->translated('production_year', $locale)])->filter()->join('、') }}
         </flux:text>

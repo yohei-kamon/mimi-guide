@@ -117,7 +117,7 @@ new #[Layout('layouts::visitor')] class extends Component {
         @forelse ($this->artworks as $artwork)
             <a href="{{ route('visitor.artwork', $artwork) }}" wire:navigate class="flex items-center gap-4 rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                 <span class="w-10 shrink-0 text-center text-lg font-semibold tabular-nums text-zinc-500">{{ $artwork->guide_number }}</span>
-                <flux:heading>{{ $artwork->title($locale) }}</flux:heading>
+                <flux:heading>{{ $artwork->title() }}</flux:heading>
             </a>
         @empty
             <flux:text>公開中の作品はありません。</flux:text>

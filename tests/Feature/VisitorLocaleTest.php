@@ -34,19 +34,32 @@ function storedLocaleAudioGuide(Artwork $artwork, string $locale, string $conten
     return $audioGuide;
 }
 
-test('the chosen locale shows the translations and is kept in the session', function () {
+test('the chosen locale shows the translated description and is kept in the session', function () {
     $artwork = bilingualArtwork();
 
     $this->get(route('visitor.artwork', [$artwork, 'lang' => 'en']))
         ->assertOk()
-        ->assertSee('The Great Wave')
         ->assertSee('A wave off the coast.')
-        ->assertDontSee('神奈川沖浪裏')
+        ->assertDontSee('沖の大波。')
         ->assertSessionHas(Museum::VISITOR_LOCALE_SESSION_KEY, 'en');
+
+    $this->get(route('visitor.artwork', $artwork))
+        ->assertOk()
+        ->assertSee('A wave off the coast.');
+});
+
+test('the artwork title stays in the default locale in any chosen locale', function () {
+    $artwork = bilingualArtwork();
+
+    $this->get(route('visitor.artwork', [$artwork, 'lang' => 'en']))
+        ->assertOk()
+        ->assertSee('神奈川沖浪裏')
+        ->assertDontSee('The Great Wave');
 
     $this->get(route('visitor.exhibition', $artwork->exhibition))
         ->assertOk()
-        ->assertSee('The Great Wave');
+        ->assertSee('神奈川沖浪裏')
+        ->assertDontSee('The Great Wave');
 });
 
 test('items without a translation in the chosen locale are shown in the default locale', function () {
@@ -54,7 +67,6 @@ test('items without a translation in the chosen locale are shown in the default 
 
     $this->get(route('visitor.artwork', [$artwork, 'lang' => 'en']))
         ->assertOk()
-        ->assertSee('The Great Wave')
         ->assertSee('沖の大波。');
 });
 
@@ -69,8 +81,7 @@ test('the exhibition name and description stay in the default locale in any chos
         ->assertSee('企画展 浮世絵の世界')
         ->assertSee('浮世絵の名品を紹介します。')
         ->assertDontSee('The World of Ukiyo-e')
-        ->assertDontSee('Masterpieces of ukiyo-e.')
-        ->assertSee('The Great Wave');
+        ->assertDontSee('Masterpieces of ukiyo-e.');
 
     $this->get(route('visitor.museum', $exhibition->museum))
         ->assertSee('企画展 浮世絵の世界')
@@ -128,13 +139,13 @@ test('the audio falls back to the default locale with a notice when the chosen l
     expect($response->baseResponse->getFile()->getContent())->toBe('japanese audio');
 });
 
-test('the playlist uses the chosen locale', function () {
+test('the playlist uses the chosen locale for the description and the default locale for the title', function () {
     $artwork = bilingualArtwork();
     AudioGuide::factory()->for($artwork)->create();
 
     $component = Livewire::withQueryParams(['lang' => 'en'])
         ->test('pages::visitor.play', ['exhibition' => $artwork->exhibition]);
 
-    expect($component->instance()->playlist[0]['title'])->toBe('The Great Wave')
+    expect($component->instance()->playlist[0]['title'])->toBe('神奈川沖浪裏')
         ->and($component->instance()->playlist[0]['description'])->toBe('A wave off the coast.');
 });

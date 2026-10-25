@@ -65,7 +65,7 @@ new #[Layout('layouts::visitor')] class extends Component {
             ->map(fn (Artwork $artwork) => [
                 'slug' => $artwork->slug,
                 'guideNumber' => $artwork->guide_number,
-                'title' => $artwork->title($this->locale),
+                'title' => $artwork->title(),
                 'credit' => collect([$artwork->translated('artist', $this->locale), $artwork->translated('production_year', $this->locale)])->filter()->join('、'),
                 'description' => $artwork->translated('description', $this->locale) ?? '',
                 'imageUrl' => $artwork->image_path !== null ? Storage::disk('public')->url($artwork->image_path) : null,
