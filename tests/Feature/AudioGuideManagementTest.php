@@ -246,6 +246,7 @@ test('text to speech sends the text and language to ElevenLabs with the configur
     config([
         'services.elevenlabs.key' => 'test-key',
         'services.elevenlabs.voice_id' => 'voice-1',
+        'services.elevenlabs.japanese_voice_id' => null,
         'services.elevenlabs.model_id' => 'eleven_v4',
     ]);
     Http::fake(['api.elevenlabs.io/*' => Http::response('mp3-audio')]);
@@ -261,6 +262,34 @@ test('text to speech sends the text and language to ElevenLabs with the configur
     'Japanese' => ['ja', 'ja'],
     'Simplified Chinese' => ['zh-Hans', 'zh'],
 ]);
+
+test('text to speech uses the Japanese voice for Japanese and the default voice for other languages', function (string $locale, string $voiceId) {
+    config([
+        'services.elevenlabs.voice_id' => 'voice-default',
+        'services.elevenlabs.japanese_voice_id' => 'voice-ja',
+    ]);
+    Http::fake(['api.elevenlabs.io/*' => Http::response('mp3-audio')]);
+
+    app(TextToSpeechService::class)->synthesize('こんにちは', $locale);
+
+    Http::assertSent(fn (Request $request) => str_starts_with($request->url(), "https://api.elevenlabs.io/v1/text-to-speech/{$voiceId}?"));
+})->with([
+    'Japanese' => ['ja', 'voice-ja'],
+    'English' => ['en', 'voice-default'],
+    'Simplified Chinese' => ['zh-Hans', 'voice-default'],
+]);
+
+test('text to speech falls back to the default voice for Japanese when no Japanese voice is configured', function () {
+    config([
+        'services.elevenlabs.voice_id' => 'voice-default',
+        'services.elevenlabs.japanese_voice_id' => null,
+    ]);
+    Http::fake(['api.elevenlabs.io/*' => Http::response('mp3-audio')]);
+
+    app(TextToSpeechService::class)->synthesize('こんにちは', 'ja');
+
+    Http::assertSent(fn (Request $request) => str_starts_with($request->url(), 'https://api.elevenlabs.io/v1/text-to-speech/voice-default?'));
+});
 
 test('text to speech does not send the language to a model that rejects it', function () {
     config(['services.elevenlabs.model_id' => 'eleven_multilingual_v2']);

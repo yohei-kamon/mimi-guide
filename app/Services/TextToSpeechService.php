@@ -25,6 +25,7 @@ class TextToSpeechService
      * Convert the text in the given locale to speech with ElevenLabs and return the MP3 audio.
      *
      * The locale is sent as an ISO 639-1 code (`zh-Hans` becomes `zh`) when the model supports it.
+     * Japanese uses its own voice when one is configured; the other locales use the default voice.
      *
      * @throws ConnectionException
      * @throws RequestException
@@ -32,7 +33,7 @@ class TextToSpeechService
     public function synthesize(string $text, string $locale): string
     {
         $modelId = (string) config('services.elevenlabs.model_id');
-        $voiceId = rawurlencode((string) config('services.elevenlabs.voice_id'));
+        $voiceId = rawurlencode($this->voiceIdFor($locale));
 
         return Http::withHeaders(['xi-api-key' => (string) config('services.elevenlabs.key')])
             ->accept('audio/mpeg')
@@ -44,5 +45,19 @@ class TextToSpeechService
             ]))
             ->throw()
             ->body();
+    }
+
+    /**
+     * Pick the Japanese voice for Japanese, falling back to the default voice when it is not configured.
+     */
+    private function voiceIdFor(string $locale): string
+    {
+        $japaneseVoiceId = config('services.elevenlabs.japanese_voice_id');
+
+        if (Str::before($locale, '-') === 'ja' && filled($japaneseVoiceId)) {
+            return (string) $japaneseVoiceId;
+        }
+
+        return (string) config('services.elevenlabs.voice_id');
     }
 }
