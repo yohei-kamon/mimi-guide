@@ -84,7 +84,7 @@ new #[Layout('layouts::visitor')] class extends Component {
 
             @foreach ($this->exhibitions as $exhibition)
                 <flux:button icon="play" :href="route('visitor.exhibition.play', $exhibition)" class="w-full">
-                    {{ $exhibition->name($locale) }}を続けて再生
+                    {{ $exhibition->name() }}を続けて再生
                 </flux:button>
             @endforeach
         </div>

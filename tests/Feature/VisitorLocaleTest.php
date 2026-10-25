@@ -4,6 +4,7 @@ use App\Models\Artwork;
 use App\Models\ArtworkTranslation;
 use App\Models\AudioGuide;
 use App\Models\Exhibition;
+use App\Models\ExhibitionTranslation;
 use App\Models\Museum;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -55,6 +56,29 @@ test('items without a translation in the chosen locale are shown in the default 
         ->assertOk()
         ->assertSee('The Great Wave')
         ->assertSee('沖の大波。');
+});
+
+test('the exhibition name and description stay in the default locale in any chosen locale', function () {
+    $artwork = bilingualArtwork();
+    $exhibition = $artwork->exhibition;
+    $exhibition->translation()->update(['name' => '企画展 浮世絵の世界', 'description' => '浮世絵の名品を紹介します。']);
+    ExhibitionTranslation::factory()->for($exhibition)->locale('en')->create(['name' => 'The World of Ukiyo-e', 'description' => 'Masterpieces of ukiyo-e.']);
+
+    $this->get(route('visitor.exhibition', [$exhibition, 'lang' => 'en']))
+        ->assertOk()
+        ->assertSee('企画展 浮世絵の世界')
+        ->assertSee('浮世絵の名品を紹介します。')
+        ->assertDontSee('The World of Ukiyo-e')
+        ->assertDontSee('Masterpieces of ukiyo-e.')
+        ->assertSee('The Great Wave');
+
+    $this->get(route('visitor.museum', $exhibition->museum))
+        ->assertSee('企画展 浮世絵の世界')
+        ->assertDontSee('The World of Ukiyo-e');
+
+    $this->get(route('visitor.artwork', $artwork))
+        ->assertSee('企画展 浮世絵の世界')
+        ->assertDontSee('The World of Ukiyo-e');
 });
 
 test('a locale the museum does not support is ignored', function (string $locale) {

@@ -81,7 +81,7 @@ new #[Layout('layouts::visitor')] class extends Component {
 
         @forelse ($this->exhibitions as $exhibition)
             <a href="{{ route('visitor.exhibition', $exhibition) }}" wire:navigate class="block rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
-                <flux:heading>{{ $exhibition->name($locale) }}</flux:heading>
+                <flux:heading>{{ $exhibition->name() }}</flux:heading>
                 <flux:text class="mt-1">{{ $exhibition->periodLabel() }}</flux:text>
             </a>
         @empty

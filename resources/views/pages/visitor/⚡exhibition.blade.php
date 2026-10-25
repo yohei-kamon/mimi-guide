@@ -79,7 +79,7 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function render(): View
     {
-        return $this->view()->title($this->exhibition->name($this->locale));
+        return $this->view()->title($this->exhibition->name());
     }
 }; ?>
 
@@ -88,11 +88,11 @@ new #[Layout('layouts::visitor')] class extends Component {
         <flux:text>
             <flux:link :href="route('visitor.museum', $exhibition->museum)" wire:navigate>{{ $exhibition->museum->name($locale) }}</flux:link>
         </flux:text>
-        <flux:heading size="xl" level="1">{{ $exhibition->name($locale) }}</flux:heading>
+        <flux:heading size="xl" level="1">{{ $exhibition->name() }}</flux:heading>
         <flux:text>{{ $exhibition->periodLabel() }}</flux:text>
 
-        @if (filled($exhibition->translated('description', $locale)))
-            <flux:text class="whitespace-pre-line">{{ $exhibition->translated('description', $locale) }}</flux:text>
+        @if (filled($exhibition->translation()?->description))
+            <flux:text class="whitespace-pre-line">{{ $exhibition->translation()->description }}</flux:text>
         @endif
 
         <x-pages::visitor.locale-switcher :museum="$exhibition->museum" :locale="$locale" />

@@ -92,7 +92,7 @@ new #[Layout('layouts::visitor')] class extends Component {
      */
     public function render(): View
     {
-        return $this->view()->title($this->exhibition->name($this->locale));
+        return $this->view()->title($this->exhibition->name());
     }
 }; ?>
 
@@ -100,7 +100,7 @@ new #[Layout('layouts::visitor')] class extends Component {
     @php($museum = $exhibition->museum)
 
     <flux:text>
-        <flux:link :href="route('visitor.exhibition', $exhibition)" wire:navigate>{{ $exhibition->name($locale) }}</flux:link>
+        <flux:link :href="route('visitor.exhibition', $exhibition)" wire:navigate>{{ $exhibition->name() }}</flux:link>
     </flux:text>
 
     @if (! $this->hasAccess)

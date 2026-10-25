@@ -52,7 +52,7 @@ new #[Layout('layouts::visitor')] class extends Component {
     @php($museum = $artwork->exhibition->museum)
 
     <flux:text>
-        <flux:link :href="route('visitor.exhibition', $artwork->exhibition)" wire:navigate>{{ $artwork->exhibition->name($locale) }}</flux:link>
+        <flux:link :href="route('visitor.exhibition', $artwork->exhibition)" wire:navigate>{{ $artwork->exhibition->name() }}</flux:link>
     </flux:text>
 
     @if ($artwork->image_path !== null)
