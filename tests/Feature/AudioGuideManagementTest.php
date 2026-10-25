@@ -251,7 +251,7 @@ test('text to speech sends the text and language to ElevenLabs with the configur
     ]);
     Http::fake(['api.elevenlabs.io/*' => Http::response('mp3-audio')]);
 
-    expect(app(TextToSpeechService::class)->synthesize('こんにちは', $locale))->toBe('mp3-audio');
+    expect(app(TextToSpeechService::class)->synthesize('こんにちは', $locale))->toEndWith('mp3-audio');
 
     Http::assertSent(fn (Request $request) => $request->url() === 'https://api.elevenlabs.io/v1/text-to-speech/voice-1?output_format=mp3_44100_128'
         && $request->hasHeader('xi-api-key', 'test-key')
@@ -289,6 +289,28 @@ test('text to speech falls back to the default voice for Japanese when no Japane
     app(TextToSpeechService::class)->synthesize('こんにちは', 'ja');
 
     Http::assertSent(fn (Request $request) => str_starts_with($request->url(), 'https://api.elevenlabs.io/v1/text-to-speech/voice-default?'));
+});
+
+test('text to speech adds about half a second of silent frames before the speech', function () {
+    Http::fake(['api.elevenlabs.io/*' => Http::response('mp3-audio')]);
+
+    $audio = app(TextToSpeechService::class)->synthesize('こんにちは', 'ja');
+
+    expect(strlen($audio))->toBe(20 * 417 + strlen('mp3-audio'))
+        ->and($audio)->toStartWith("\xFF\xFB\x90\xC4")
+        ->and(substr($audio, 19 * 417, 4))->toBe("\xFF\xFB\x90\xC4")
+        ->and($audio)->toEndWith('mp3-audio');
+});
+
+test('text to speech adds the silence after the ID3 tag', function () {
+    $tag = 'ID3'."\x04\x00\x00"."\x00\x00\x00\x05".'abcde';
+    Http::fake(['api.elevenlabs.io/*' => Http::response($tag.'mp3-audio')]);
+
+    $audio = app(TextToSpeechService::class)->synthesize('こんにちは', 'ja');
+
+    expect($audio)->toStartWith($tag."\xFF\xFB\x90\xC4")
+        ->and($audio)->toEndWith('mp3-audio')
+        ->and(strlen($audio))->toBe(strlen($tag) + 20 * 417 + strlen('mp3-audio'));
 });
 
 test('text to speech does not send the language to a model that rejects it', function () {
